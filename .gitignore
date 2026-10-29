@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and local config
+.env
+*.env
+!.env.example
+
+# Local data (SQLite demo database)
+data/*.db
+data/*.db-journal
+
+# Node
+node_modules/
+frontend/dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
