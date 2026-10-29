@@ -111,12 +111,16 @@ def _insert_ignore(session: Session, rows: list[dict]) -> int:
     else:
         from sqlalchemy.dialects.sqlite import insert
 
+    # Count inserted rows with RETURNING instead of rowcount: psycopg reports -1 for a
+    # multi-row INSERT ... ON CONFLICT DO NOTHING, which only showed up on PostgreSQL (Day 6).
+    # RETURNING yields exactly the rows that were stored on both PostgreSQL and SQLite >= 3.35.
     stmt = (
         insert(TransactionProcessed)
         .values(rows)
         .on_conflict_do_nothing(index_elements=["batch_id", "source_id"])
+        .returning(TransactionProcessed.id)
     )
-    return session.execute(stmt).rowcount
+    return len(session.execute(stmt).scalars().all())
 
 
 def process_batch(

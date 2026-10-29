@@ -31,11 +31,26 @@ explanations but never decides financial correctness and never writes to the dat
 | 3 | Lineage, evidence, rules-based and optional AI investigation | Done (backend) |
 | 4 | React/TypeScript dashboard | Done |
 | 5 | Approval-gated recovery and test matrix | Done (backend) |
-| 6 | Docker Compose, docs, release v0.1.0 | Not started |
+| 6 | Docker Compose, docs, release v0.1.0 | Done |
 
-## Quick start (Windows PowerShell)
+## Run everything with Docker (Day 6)
 
-Prerequisites: Python 3.11+, Git, and Node.js 20+ for the dashboard. Docker is needed only for Day 6.
+Prerequisite: Docker Desktop with the engine running.
+
+```powershell
+docker compose up --build
+```
+
+This starts PostgreSQL 17, the backend and the dashboard. Open http://localhost:5173 and follow
+[docs/demo-script.md](docs/demo-script.md). The API is at http://localhost:8000/docs. Stop with
+`Ctrl+C`, or `docker compose down -v` to also delete the database volume.
+
+Optional settings go in a root `.env` file; see [.env.example](.env.example) for the API key and
+port overrides.
+
+## Quick start without Docker (Windows PowerShell)
+
+Prerequisites: Python 3.11+, Git, and Node.js 20+ for the dashboard.
 
 ```powershell
 cd backend
@@ -101,7 +116,14 @@ cd backend
 .\.venv\Scripts\python.exe -m ruff check app tests scripts
 ```
 
-Tests use an in-memory SQLite database, so they need no setup.
+Tests use an in-memory SQLite database by default, so they need no setup. To run the same suite
+against PostgreSQL, start the Compose database and point the tests at it:
+
+```powershell
+docker compose up -d db
+$env:TEST_DATABASE_URL = "postgresql+psycopg://datarescue:datarescue@localhost:5432/datarescue"
+.\.venv\Scripts\python.exe -m pytest
+```
 
 ## API
 
@@ -179,6 +201,14 @@ The incident becomes `resolved` only when every check passes.
 | Unapproved replay | Rejected and recorded | `test_recovery.py::test_unapproved_replay_is_rejected_and_recorded` |
 | AI unavailable | Rules-based investigation remains usable | `test_investigation.py::test_investigate_without_key_uses_rules_and_says_so` |
 
+## Screenshots
+
+Captured from the dashboard running on simulated data.
+
+| Overview | Incident detail | Recovery proof |
+|----------|-----------------|----------------|
+| ![Overview](docs/screenshots/overview.png) | ![Incident detail](docs/screenshots/incident-detail.png) | ![Recovery proof](docs/screenshots/recovery-proof.png) |
+
 ## Failure scenarios
 
 | Scenario | What is injected | What the system records |
@@ -207,8 +237,11 @@ backend/
   scripts/seed_data.py     CLI seeding
   scripts/evaluate_investigator.py  grade diagnoses against labeled cases
   tests/                   pytest suite
-docs/                      problem statement, architecture, decision and bug logs
+docs/                      problem statement, architecture, demo script, decision and bug logs
 data/                      local SQLite file (ignored by Git)
+docker-compose.yml         PostgreSQL + backend + dashboard (Day 6)
+backend/Dockerfile         python:3.13-slim + uvicorn
+frontend/Dockerfile        node build stage -> nginx static serve
 frontend/
   src/api/types.ts         TypeScript mirrors of schemas.py
   src/api/client.ts        one typed function per backend route

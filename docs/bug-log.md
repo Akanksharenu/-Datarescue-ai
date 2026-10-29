@@ -40,3 +40,28 @@ Fix: `session.flush()` to get the run id, build a brand-new list and dict, one c
 now copies `refused_attempts` into itself. The API test now reads the record back over HTTP and
 asserts the run id is an integer and that the proof still lists the refusal.
 Lesson: a test that checks persistence must read through a fresh session or over the API.
+
+**6. Docker Desktop installed but could not start; `wsl` "not recognized".**
+Symptoms: the installer reported "Existing installation is up to date" yet no engine; in
+PowerShell `wsl --install` failed with CommandNotFoundException although `C:\Windows\System32\wsl.exe`
+existed; `reg`, `where`, `netstat` were also missing.
+Cause: the machine-level `Path` had been overwritten to only `C:\Program Files\Git\bin;C:\Program Files\nodejs\`,
+dropping `C:\Windows\system32` and friends. On top of that WSL 2 was not installed, which
+Docker Desktop on Windows Home requires.
+Fix: restored the machine Path from an administrator PowerShell with
+`[Environment]::SetEnvironmentVariable("Path", "<windows defaults>;<git>;<node>", "Machine")`,
+ran `wsl --install --no-distribution`, restarted, started Docker Desktop; `docker run hello-world` passed.
+Lesson: when several unrelated commands are "not recognized", check `Path` before reinstalling anything.
+
+**7. On PostgreSQL, `rows_inserted` came back as -1 per batch (-2, -3 in the summaries).**
+Found: first run of the test suite with `TEST_DATABASE_URL` pointing at the Compose database.
+Three tests failed (`rows_inserted == 1000` got -3; second replay `== 0` got -2) and the live
+container reported "-2 rows inserted" for a replay that correctly inserted nothing.
+Cause: `_insert_ignore` returned `cursor.rowcount` after a multi-row
+`INSERT ... ON CONFLICT DO NOTHING`. psycopg reports -1 for that statement shape; SQLite
+reports the true count, so the bug was invisible for five days.
+Fix: append `RETURNING id` and count the returned rows. RETURNING yields exactly the rows that
+were stored on both PostgreSQL and SQLite (3.35+), so one code path serves both.
+Lesson: a count that drives a proof record must come from the database saying what it stored,
+not from a driver-dependent side channel. This is also why Day 6 runs the suite on PostgreSQL
+before tagging.

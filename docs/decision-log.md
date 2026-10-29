@@ -93,3 +93,24 @@ dashboard never does arithmetic on amounts except the shortfall, which is one in
 **The AI badge is always visible.** Every investigation card shows `rules` or `LLM: <model>`, the
 confidence, whether its evidence paths were verified, and the backend's disclaimer. A reader
 should never have to wonder whether a sentence was written by a template or a model.
+
+## 2026-10-29 (Day 6)
+
+**Three containers, not two.** The guide asks for PostgreSQL plus backend. The dashboard was
+added as a third service because a reviewer who runs one command should see the product, not
+a Swagger page. It costs one more Dockerfile and nothing at runtime.
+
+**The API URL is baked into the frontend image at build time.** Vite inlines `VITE_API_URL`
+during `npm run build`; there is no runtime substitution without extra tooling. The Compose
+file passes it as a build argument so a different host port is one variable change. The
+trade-off is that changing the backend address means rebuilding the frontend image.
+
+**Tests run against PostgreSQL through one environment variable.** `TEST_DATABASE_URL`
+switches the shared `engine` fixture from in-memory SQLite to any SQLAlchemy URL and drops and
+recreates the schema per test. No test file changed. Running the full suite on PostgreSQL
+before tagging is what turns "it works on SQLite" into a release claim.
+
+**The Docker install took longer than the Docker work.** The machine's system PATH had been
+overwritten by an earlier install and WSL was missing, so `wsl`, `reg` and `where` were all
+"not recognized". Fixing the PATH and installing WSL 2 unblocked Docker Desktop. Recorded in the
+bug log so the next person does not spend an hour on an installer that says "up to date".

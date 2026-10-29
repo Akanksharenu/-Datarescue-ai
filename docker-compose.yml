@@ -1,0 +1,52 @@
+# DataRescue AI, Day 6: one command starts PostgreSQL, the backend and the dashboard.
+#
+#   docker compose up --build
+#
+# Backend:   http://localhost:8000/docs
+# Dashboard: http://localhost:5173
+# All data is simulated. This is a learning build, not a production deployment.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: datarescue
+      POSTGRES_PASSWORD: datarescue
+      POSTGRES_DB: datarescue
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datarescue -d datarescue"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://datarescue:datarescue@db:5432/datarescue
+      SEED: "42"
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      # Optional AI investigator. Put ANTHROPIC_API_KEY in a root .env file (ignored by Git).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-claude-opus-5-5}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

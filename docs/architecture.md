@@ -95,3 +95,30 @@ Detection must work from the data alone; the injected label exists so Day 3 can 
 - PostgreSQL: set `DATABASE_URL=postgresql+psycopg://...` in `backend/.env`. Day 6 adds Docker Compose.
 - Tests: in-memory SQLite, one fresh database per test.
 - Schema setup: `Base.metadata.create_all` on startup; `POST /demo/seed` drops and recreates.
+
+## Deployment (Day 6)
+
+`docker compose up --build` starts three containers on one private network. Only the three
+published ports are reachable from the host.
+
+```mermaid
+flowchart LR
+    browser[Browser] -->|:5173| frontend[frontend<br/>nginx serving the Vite bundle]
+    browser -->|:8000 fetch| backend[backend<br/>FastAPI + uvicorn]
+    backend -->|postgresql+psycopg| db[(db<br/>PostgreSQL 17)]
+    db --- vol[(pgdata volume)]
+```
+
+| Service | Image | Listens | Configuration |
+|---------|-------|---------|---------------|
+| `db` | `postgres:17-alpine` | 5432 | user/password/db `datarescue`; health check gates the backend |
+| `backend` | built from `backend/Dockerfile` | 8000 | `DATABASE_URL`, `SEED`, `CORS_ORIGIN`, optional `ANTHROPIC_API_KEY` |
+| `frontend` | built from `frontend/Dockerfile` | 80 -> 5173 | `VITE_API_URL` baked at build time |
+
+The dashboard calls the backend from the browser, so the API URL baked into the bundle is the
+host-visible `http://localhost:8000`, not the Compose service name. The backend only ever
+sees the database by its service name `db`.
+
+The same code runs on SQLite with no containers (the default for development). The only
+dialect-specific line is the `INSERT ... ON CONFLICT` import in `pipeline.py`, chosen at
+runtime from the engine's dialect, and the test suite runs against either database.
