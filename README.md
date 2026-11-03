@@ -203,11 +203,8 @@ The incident becomes `resolved` only when every check passes.
 
 ## Screenshots
 
-Captured from the dashboard running on simulated data.
-
-| Overview | Incident detail | Recovery proof |
-|----------|-----------------|----------------|
-| ![Overview](docs/screenshots/overview.png) | ![Incident detail](docs/screenshots/incident-detail.png) | ![Recovery proof](docs/screenshots/recovery-proof.png) |
+Not captured yet. Run the stack with Docker and follow [docs/demo-script.md](docs/demo-script.md)
+to see the Overview page, an incident with its lineage and investigation, and the recovery proof.
 
 ## Failure scenarios
 
